@@ -106,6 +106,16 @@ arriving, a pause with no new partial results ends the turn, and a hard ceiling
 backstops it. This is the opposite failure from the reference app, which stops
 listening in under a second.
 
+### Trusting more than the first guess
+
+Greek command verbs are easy to mishear — the recognizer has returned
+"θάλασσα" for "κάλεσε", which quietly turned a phone call into directions to a
+beach bar. Three hypotheses are requested and all of them are used: the intent
+comes from the first alternative that opens with a real command verb, and
+contact matching scores every alternative and keeps each contact's best, so a
+name mangled in the top transcription can still be found in another reading.
+Debug builds log the hypotheses under the `Mila` tag.
+
 ## Build
 
 Requirements: JDK 17+, Android SDK (platform 36). A `local.properties` with
@@ -156,6 +166,14 @@ adb forward tcp:5277 tcp:5277
 ```
 
 The car screen appears in a desktop window with the phone providing the apps.
+
+**Stop the head unit server before driving.** Android Auto projects one session
+at a time, so a server left running keeps the phone busy serving the DHU and
+the app can be missing from a real car's launcher. Use Android Auto's overflow
+menu → **Διακοπή διακ. κεντρ. μονάδας** (stop head unit server) before plugging
+into the car. Take care not to hit **Παύση λειτ. προγραμματιστή** (pause
+developer mode) next to it — that hides every sideloaded app with no other
+symptom.
 
 ## CI / releases
 
