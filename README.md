@@ -85,12 +85,14 @@ on-device model (size, complexity). Android's `SpeechRecognizer` does full
 Greek recognition through the phone's Google recognition service, and the
 proven open-source reference for this approach in real cars is
 [aa-speech-to-text](https://gitlab.com/ron.gr/aa-speech-to-text) (GPL-3.0),
-which this project used as a behavior reference. In practice, when the phone
-is connected to the car, the phone picks up in-cabin speech fine.
+which this project used as a behavior reference.
+
+Note that this means Mila listens through the **phone's** microphone, not the
+car's. Android Auto's own Assistant uses the car microphone, so it still hears
+you with the phone in a bag; Mila will not.
 
 **Greek needs a data connection.** Google ships no on-device (offline) speech
-model for `el-GR` — a test phone's own language-pack list contains no Greek at
-all, and the recognizer reports `Failed to get language pack of required
+model for `el-GR` — the phone's own language-pack list contains no Greek at all, and the recognizer reports `Failed to get language pack of required
 locale` and falls back to the network recognizer. There is no setting to
 change this; it applies to any app using Android's `SpeechRecognizer`. Expect
 recognition to fail without signal, which is what the retry action is for.
@@ -103,8 +105,8 @@ alone it holds the microphone until its own 60-second server cap — the driver
 speaks and nothing happens for a minute, with separate attempts accumulating
 into one transcript. Mila therefore does its own endpointing: once words start
 arriving, a pause with no new partial results ends the turn, and a hard ceiling
-backstops it. This is the opposite failure from the reference app, which stops
-listening in under a second.
+backstops it. Erring the other way is just as bad: too short a timeout cuts the
+driver off mid-address.
 
 ### Trusting more than the first guess
 
