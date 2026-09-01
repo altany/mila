@@ -5,12 +5,14 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 
 /**
  * Runtime permission dialogs cannot be shown on the car screen, so this
@@ -20,6 +22,7 @@ import androidx.core.content.ContextCompat
 class SetupActivity : ComponentActivity() {
 
     private lateinit var statusText: TextView
+    private lateinit var checklist: TextView
     private lateinit var grantButton: Button
 
     private val requestPermissions =
@@ -51,6 +54,15 @@ class SetupActivity : ComponentActivity() {
         }
         root.addView(statusText)
 
+        // Showing each permission's state makes the change visible: without it
+        // the screen looks identical before and after granting.
+        checklist = TextView(this).apply {
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 17f)
+            gravity = Gravity.CENTER
+            setPadding(0, 0, 0, pad)
+        }
+        root.addView(checklist)
+
         grantButton = Button(this).apply {
             text = getString(R.string.setup_grant)
             setOnClickListener { requestPermissions.launch(REQUIRED_PERMISSIONS) }
@@ -58,6 +70,7 @@ class SetupActivity : ComponentActivity() {
         root.addView(grantButton)
 
         setContentView(root)
+        WindowCompat.getInsetsController(window, root).isAppearanceLightStatusBars = true
     }
 
     override fun onResume() {
@@ -66,10 +79,22 @@ class SetupActivity : ComponentActivity() {
     }
 
     private fun refresh() {
-        if (allPermissionsGranted(this)) {
-            statusText.text = getString(R.string.setup_done)
-            grantButton.isEnabled = false
+        val labels = listOf(
+            Manifest.permission.RECORD_AUDIO to R.string.perm_mic,
+            Manifest.permission.READ_CONTACTS to R.string.perm_contacts,
+            Manifest.permission.CALL_PHONE to R.string.perm_calls,
+        )
+        checklist.text = labels.joinToString("\n") { (permission, label) ->
+            val granted = ContextCompat.checkSelfPermission(this, permission) ==
+                PackageManager.PERMISSION_GRANTED
+            "${if (granted) "✓" else "○"}  ${getString(label)}"
         }
+
+        val ready = allPermissionsGranted(this)
+        statusText.text = getString(
+            if (ready) R.string.setup_done else R.string.setup_explainer
+        )
+        grantButton.visibility = if (ready) View.GONE else View.VISIBLE
     }
 
     companion object {

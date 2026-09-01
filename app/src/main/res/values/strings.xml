@@ -3,7 +3,10 @@
     <string name="setup_title">Μίλα</string>
     <string name="setup_explainer">Η Μίλα χρειάζεται πρόσβαση στο μικρόφωνο, στις επαφές και στις κλήσεις για να δουλέψει στο αυτοκίνητο. Όλα γίνονται στο τηλέφωνο — τίποτα δεν αποθηκεύεται αλλού.</string>
     <string name="setup_grant">Παραχώρηση αδειών</string>
-    <string name="setup_done">Όλα έτοιμα! Άνοιξε τη Μίλα στην οθόνη του αυτοκινήτου.</string>
+    <string name="setup_done">Όλα έτοιμα! Δεν χρειάζεσαι άλλο το τηλέφωνο — άνοιξε τη Μίλα στην οθόνη του αυτοκινήτου.</string>
+    <string name="perm_mic">Μικρόφωνο</string>
+    <string name="perm_contacts">Επαφές</string>
+    <string name="perm_calls">Κλήσεις</string>
     <string name="mode_navigate">Πλοήγηση</string>
     <string name="mode_call">Κλήση</string>
     <string name="listening_navigate">Σε ακούω… Πες μου διεύθυνση ή προορισμό.</string>
