@@ -8,9 +8,19 @@ name to place a call.
 This is a personal tool, installed from a locally or CI-built APK. No Play
 Store, no backend, no analytics.
 
-## Status
+## How it works in the car
 
-Work in progress. Phase 1 (scaffold + CI) done.
+Open Mila on the car screen. It starts listening immediately (a short tone
+tells you the mic is open) — no mic tap.
+
+- **Πλοήγηση (Navigate)** — say a destination. Mila hands it to Google Maps
+  and navigation starts.
+- **Κλήση (Call)** — say a contact name. If one contact clearly wins, it
+  dials. If several are close, it shows a short pick list instead of guessing.
+
+Two big buttons switch modes, and switching restarts listening. If the
+recognizer gives up early, the screen keeps whatever it heard and offers
+**Ξαναπές το** (retry) or using the partial text.
 
 ## Architecture (one page)
 
@@ -30,6 +40,35 @@ Work in progress. Phase 1 (scaffold + CI) done.
   `ACTION_CALL`.
 - Runtime permissions can't be granted on the car screen, so a one-time
   phone-side `SetupActivity` requests mic, contacts and call permissions.
+  The car screen detects missing permissions and says to finish setup on the
+  phone.
+
+### Contact matching
+
+Greek speech has to match contacts saved in Greek, in Greeklish, or in Latin.
+Both the spoken name and each contact name are reduced to a canonical Latin
+"phonetic key" (`GreekText.canonicalKey`): accents and case are stripped, and
+Greek digraphs collapse to sounds (`ου`→u, `μπ`→b, `αι`→e, `ει`/`οι`/`η`/`υ`→i).
+
+Some Greeklish letters are genuinely ambiguous, so they expand into a small
+set of variant keys and the best-scoring reading wins:
+
+| Letter | Readings | Example |
+| --- | --- | --- |
+| `x` | χ or ξ | Xristos (Χρήστος) / Xenia (Ξένια) |
+| `h` | χ or η | Hristos / Xrhstos |
+| `b` | μπ or β | Babis (Μπάμπης) / Basilis (Βασίλης) |
+| `u` | ου or υ | Loukas (Λουκάς) / Kuriakos (Κυριάκος) |
+| `ai` `ei` `oi` | digraph or two vowels | Kaiti (Καίτη) / Mixail (Μιχαήλ) |
+
+Scoring is Levenshtein similarity, computed both over the whole name and token
+by token, so saying just "Ελένη" matches "Ελένη Βασιλείου". A candidate must
+clear a minimum score to be offered at all, and must beat the runner-up by a
+margin to be dialled without asking — otherwise the pick list appears.
+
+Matching happens in memory, not in a SQL `LIKE` query, because the contacts
+provider can't compare Greek speech to Greeklish spellings. Contacts are read
+off the main thread and cached when the screen opens.
 
 ### Why `SpeechRecognizer` and not `CarAudioRecord`
 
@@ -50,6 +89,7 @@ Requirements: JDK 17+, Android SDK (platform 36). A `local.properties` with
 
 ```bash
 ./gradlew assembleDebug          # debug APK
+./gradlew test                   # unit tests (transliteration + matching)
 ./scripts/build-release.sh       # signed release APK (creates keystore on first run)
 ```
 

@@ -16,7 +16,7 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@v4
-      - run: ./gradlew assembleDebug
+      - run: ./gradlew test assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: mila-debug-apk
@@ -44,7 +44,7 @@ jobs:
           MILA_KEYSTORE_PASSWORD: ${{ secrets.MILA_KEYSTORE_PASSWORD }}
           MILA_KEY_ALIAS: ${{ secrets.MILA_KEY_ALIAS }}
           MILA_KEY_PASSWORD: ${{ secrets.MILA_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew test assembleRelease
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk mila-${{ github.ref_name }}.apk
       - name: Create GitHub Release with APK
