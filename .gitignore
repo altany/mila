@@ -1,0 +1,19 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android / IDE
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing — never commit the keystore or its passwords
+keystore/
+keystore.properties
+*.jks
+*.keystore

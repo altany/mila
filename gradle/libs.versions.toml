@@ -1,0 +1,14 @@
+[versions]
+agp = "9.3.0"
+carApp = "1.7.0"
+activity = "1.11.0"
+junit = "4.13.2"
+
+[libraries]
+car-app = { group = "androidx.car.app", name = "app", version.ref = "carApp" }
+car-app-projected = { group = "androidx.car.app", name = "app-projected", version.ref = "carApp" }
+androidx-activity = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }

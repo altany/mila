@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Mila</string>
+    <string name="setup_title">Μίλα</string>
+    <string name="setup_explainer">Η Μίλα χρειάζεται πρόσβαση στο μικρόφωνο, στις επαφές και στις κλήσεις για να δουλέψει στο αυτοκίνητο. Όλα γίνονται στο τηλέφωνο — τίποτα δεν αποθηκεύεται αλλού.</string>
+    <string name="setup_grant">Παραχώρηση αδειών</string>
+    <string name="setup_done">Όλα έτοιμα! Άνοιξε τη Μίλα στην οθόνη του αυτοκινήτου.</string>
+    <string name="car_hello">Γεια! Η Μίλα είναι έτοιμη.</string>
+</resources>

@@ -1,0 +1,58 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+jobs:
+  debug-apk:
+    if: github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mila-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+  release-apk:
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Decode signing keystore
+        run: |
+          mkdir -p keystore
+          echo "${{ secrets.MILA_KEYSTORE_BASE64 }}" | base64 -d > keystore/mila.jks
+      - name: Build signed release APK
+        env:
+          MILA_KEYSTORE_FILE: keystore/mila.jks
+          MILA_KEYSTORE_PASSWORD: ${{ secrets.MILA_KEYSTORE_PASSWORD }}
+          MILA_KEY_ALIAS: ${{ secrets.MILA_KEY_ALIAS }}
+          MILA_KEY_PASSWORD: ${{ secrets.MILA_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk mila-${{ github.ref_name }}.apk
+      - name: Create GitHub Release with APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "Mila ${{ github.ref_name }}" \
+            --generate-notes \
+            mila-${{ github.ref_name }}.apk
