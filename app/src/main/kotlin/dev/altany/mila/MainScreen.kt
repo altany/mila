@@ -15,6 +15,8 @@ import androidx.car.app.model.Template
 import androidx.core.graphics.drawable.IconCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import dev.altany.mila.match.Contact
+import dev.altany.mila.match.ContactMatcher
 
 /**
  * The single car screen: starts listening as soon as it appears, shows the
@@ -34,6 +36,7 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
 
     private var mode = Mode.NAVIGATE
     private var state: UiState = UiState.Listening
+    private var cachedContacts: List<Contact>? = null
     private val speech = SpeechController(carContext)
     private val handler = Handler(Looper.getMainLooper())
 
@@ -65,7 +68,10 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
         when {
             !SetupActivity.allPermissionsGranted(carContext) -> setState(UiState.NeedsSetup)
             !speech.isAvailable -> setState(UiState.NoRecognizer)
-            else -> startListening()
+            else -> {
+                preloadContacts()
+                startListening()
+            }
         }
     }
 
@@ -98,15 +104,51 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
                 ).show()
                 NavigationLauncher.navigateTo(carContext, text)
             }
-            Mode.CALL -> {
-                // Call flow lands next; show what was heard meanwhile.
-                CarToast.makeText(
-                    carContext,
-                    carContext.getString(R.string.heard, text),
-                    CarToast.LENGTH_LONG
-                ).show()
-                setState(UiState.Listening)
-            }
+            Mode.CALL -> handleCallRequest(text)
+        }
+    }
+
+    /**
+     * Contacts are read once in the background when the screen opens, so the
+     * provider query never runs on the main thread while the driver waits.
+     */
+    private fun preloadContacts() {
+        if (cachedContacts != null) return
+        Thread {
+            val loaded = runCatching { ContactsRepository.loadAll(carContext) }.getOrNull()
+            handler.post { cachedContacts = loaded }
+        }.start()
+    }
+
+    private fun handleCallRequest(spoken: String) {
+        val contacts = cachedContacts
+        if (contacts == null) {
+            // Still loading (or the read failed): do it off the main thread and
+            // come back with the answer.
+            Thread {
+                val loaded = runCatching { ContactsRepository.loadAll(carContext) }.getOrNull()
+                handler.post {
+                    if (loaded == null) {
+                        setState(UiState.NeedsSetup)
+                    } else {
+                        cachedContacts = loaded
+                        matchAndAct(spoken, loaded)
+                    }
+                }
+            }.start()
+            return
+        }
+        matchAndAct(spoken, contacts)
+    }
+
+    private fun matchAndAct(spoken: String, contacts: List<Contact>) {
+        when (val result = ContactMatcher.match(spoken, contacts)) {
+            is ContactMatcher.Result.Single -> CallLauncher.call(carContext, result.contact)
+            is ContactMatcher.Result.Choice ->
+                screenManager.push(ContactPickerScreen(carContext, result.candidates, spoken))
+            ContactMatcher.Result.None -> setState(
+                UiState.Error(carContext.getString(R.string.no_contact_found, spoken), null)
+            )
         }
     }
 

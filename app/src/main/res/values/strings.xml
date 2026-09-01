@@ -15,6 +15,9 @@
     <string name="car_needs_setup">Ολοκλήρωσε τη ρύθμιση στο τηλέφωνο: άνοιξε τη Μίλα και δώσε άδειες για μικρόφωνο, επαφές και κλήσεις.</string>
     <string name="no_recognizer">Δεν βρέθηκε υπηρεσία αναγνώρισης ομιλίας στο τηλέφωνο.</string>
     <string name="navigating_to">Πλοήγηση: %1$s</string>
+    <string name="calling">Κλήση: %1$s</string>
+    <string name="call_failed">Δεν έγινε η κλήση.</string>
+    <string name="no_contact_found">Δεν βρήκα επαφή για «%1$s».</string>
     <string name="navigation_failed">Δεν άνοιξε η πλοήγηση.</string>
     <string name="speech_error_no_match">Δεν σε άκουσα καθαρά.</string>
     <string name="speech_error_network">Πρόβλημα δικτύου στην αναγνώριση.</string>
