@@ -7,6 +7,6 @@ import androidx.car.app.Session
 class MilaSession : Session() {
 
     override fun onCreateScreen(intent: Intent): Screen {
-        return HelloScreen(carContext)
+        return MainScreen(carContext)
     }
 }
