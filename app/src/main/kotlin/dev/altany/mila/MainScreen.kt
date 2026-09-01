@@ -39,6 +39,7 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
     private var cachedContacts: List<Contact>? = null
     private val speech = SpeechController(carContext)
     private val handler = Handler(Looper.getMainLooper())
+    private val toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 80)
 
     init {
         lifecycle.addObserver(this)
@@ -82,14 +83,14 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
 
     override fun onDestroy(owner: LifecycleOwner) {
         speech.destroy()
+        toneGenerator.release()
     }
 
     private fun startListening() {
         setState(UiState.Listening)
         // Short prompt tone so the driver knows the mic is open, then start —
         // starting immediately can race the host's audio focus handover.
-        ToneGenerator(AudioManager.STREAM_MUSIC, 80)
-            .startTone(ToneGenerator.TONE_PROP_PROMPT, 150)
+        toneGenerator.startTone(ToneGenerator.TONE_PROP_PROMPT, 150)
         handler.removeCallbacksAndMessages(null)
         handler.postDelayed({ speech.startListening() }, 300)
     }
