@@ -61,8 +61,8 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
                 }
             }
 
-            override fun onResult(text: String) {
-                handleResult(text)
+            override fun onResult(alternatives: List<String>) {
+                handleResult(alternatives)
             }
 
             override fun onError(message: String, lastPartial: String?) {
@@ -107,15 +107,19 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
         handler.postDelayed({ speech.startListening() }, 300)
     }
 
-    private fun handleResult(spoken: String) {
-        // "κάλεσε τον Δημήτρη" means call, whichever button is selected.
-        val parsed = SpokenCommand.parse(spoken)
+    private fun handleResult(alternatives: List<String>) {
+        // "κάλεσε τον Δημήτρη" means call, whichever button is selected — and
+        // the verb may only be right in one of the recognizer's alternatives.
+        val parsed = SpokenCommand.parseBest(alternatives)
         val text = parsed.query
         val effectiveMode = when (parsed.intent) {
             SpokenCommand.Intent.CALL -> Mode.CALL
             SpokenCommand.Intent.NAVIGATE -> Mode.NAVIGATE
             null -> mode
         }
+        // For calls every reading is worth matching; for navigation the chosen
+        // phrase is what Maps should search for.
+        val callQueries = if (parsed.intent == null) alternatives else listOf(text)
         when (effectiveMode) {
             Mode.NAVIGATE -> {
                 CarToast.makeText(
@@ -125,7 +129,7 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
                 ).show()
                 NavigationLauncher.navigateTo(carContext, text)
             }
-            Mode.CALL -> handleCallRequest(text)
+            Mode.CALL -> handleCallRequest(callQueries, text)
         }
     }
 
@@ -141,7 +145,7 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
         }.start()
     }
 
-    private fun handleCallRequest(spoken: String) {
+    private fun handleCallRequest(queries: List<String>, spoken: String) {
         val contacts = cachedContacts
         if (contacts == null) {
             // Still loading (or the read failed): do it off the main thread and
@@ -153,17 +157,17 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
                         setState(UiState.NeedsSetup)
                     } else {
                         cachedContacts = loaded
-                        matchAndAct(spoken, loaded)
+                        matchAndAct(queries, spoken, loaded)
                     }
                 }
             }.start()
             return
         }
-        matchAndAct(spoken, contacts)
+        matchAndAct(queries, spoken, contacts)
     }
 
-    private fun matchAndAct(spoken: String, contacts: List<Contact>) {
-        when (val result = ContactMatcher.match(spoken, contacts)) {
+    private fun matchAndAct(queries: List<String>, spoken: String, contacts: List<Contact>) {
+        when (val result = ContactMatcher.match(queries, contacts)) {
             is ContactMatcher.Result.Single -> CallLauncher.call(carContext, result.contact)
             is ContactMatcher.Result.Choice ->
                 screenManager.push(ContactPickerScreen(carContext, result.candidates, spoken))
@@ -232,7 +236,7 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
                     add(action(R.string.error_retry, primary = true) { startListening() })
                     if (s.partial != null) {
                         add(action(R.string.error_use_partial, primary = false) {
-                            handleResult(s.partial)
+                            handleResult(listOf(s.partial))
                         })
                     } else {
                         add(

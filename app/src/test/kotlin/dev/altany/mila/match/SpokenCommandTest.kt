@@ -64,6 +64,37 @@ class SpokenCommandTest {
     }
 
     @Test
+    fun `a command hiding in a later alternative is preferred`() {
+        // The recognizer's top pick mishears "κάλεσε" as "θάλασσα", which sent
+        // the driver to a beach bar instead of the phone.
+        val parsed = SpokenCommand.parseBest(
+            listOf("θάλασσα του Δημήτρη", "κάλεσε το Δημήτρη", "καλέ σε το Δημήτρη")
+        )
+        assertEquals(SpokenCommand.Intent.CALL, parsed.intent)
+        assertEquals("Δημήτρη", parsed.query)
+    }
+
+    @Test
+    fun `the top alternative stands when none carries a command`() {
+        val parsed = SpokenCommand.parseBest(listOf("Κανακάρη 46", "Κανακάρη 40"))
+        assertNull(parsed.intent)
+        assertEquals("Κανακάρη 46", parsed.query)
+    }
+
+    @Test
+    fun `the top alternative wins when it already carries a command`() {
+        val parsed = SpokenCommand.parseBest(
+            listOf("κάλεσε τη Μαρία", "κάλεσε τον Μάριο")
+        )
+        assertEquals("Μαρία", parsed.query)
+    }
+
+    @Test
+    fun `no alternatives is safe`() {
+        assertNull(SpokenCommand.parseBest(emptyList()).intent)
+    }
+
+    @Test
     fun `empty input is safe`() {
         val parsed = SpokenCommand.parse("   ")
         assertNull(parsed.intent)

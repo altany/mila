@@ -44,12 +44,27 @@ object ContactMatcher {
         data object None : Result
     }
 
-    fun match(spoken: String, contacts: List<Contact>): Result {
-        val queryVariants = GreekText.variants(GreekText.canonicalKey(spoken))
-        if (queryVariants.all { it.isBlank() }) return Result.None
+    fun match(spoken: String, contacts: List<Contact>): Result =
+        match(listOf(spoken), contacts)
+
+    /**
+     * Matches against every hypothesis the recognizer offered, keeping each
+     * contact's best score. A name the top transcription mangled is often
+     * correct in one of the alternatives.
+     */
+    fun match(spokenAlternatives: List<String>, contacts: List<Contact>): Result {
+        val queryVariantSets = spokenAlternatives
+            .map { GreekText.variants(GreekText.canonicalKey(it)) }
+            .filter { variants -> variants.any { it.isNotBlank() } }
+        if (queryVariantSets.isEmpty()) return Result.None
 
         val scored = contacts
-            .map { ScoredContact(it, score(queryVariants, it.name)) }
+            .map { contact ->
+                ScoredContact(
+                    contact,
+                    queryVariantSets.maxOf { score(it, contact.name) },
+                )
+            }
             .filter { it.score >= MIN_SCORE }
             .sortedByDescending { it.score }
 

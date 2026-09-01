@@ -33,6 +33,21 @@ object SpokenCommand {
         "μου", "με", "προς", "στα", "στις", "τους", "τις",
     )
 
+    /**
+     * Picks the reading that actually carries a command.
+     *
+     * Greek command verbs are easy to mishear — "κάλεσε" comes back as
+     * "θάλασσα" — so if any alternative opens with a verb we trust that one
+     * over the recognizer's top pick. Otherwise the best transcription stands.
+     */
+    fun parseBest(alternatives: List<String>): Parsed {
+        alternatives.forEach { candidate ->
+            val parsed = parse(candidate)
+            if (parsed.intent != null) return parsed
+        }
+        return parse(alternatives.firstOrNull().orEmpty())
+    }
+
     fun parse(spoken: String): Parsed {
         val words = spoken.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
         if (words.isEmpty()) return Parsed(null, spoken.trim())

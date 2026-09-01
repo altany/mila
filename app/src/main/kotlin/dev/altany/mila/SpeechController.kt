@@ -8,6 +8,7 @@ import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.util.Log
 
 /**
  * Wraps Android's SpeechRecognizer for hands-free use: listening starts
@@ -26,7 +27,13 @@ class SpeechController(private val context: Context) {
     interface Listener {
         fun onListening()
         fun onPartial(text: String)
-        fun onResult(text: String)
+
+        /**
+         * All hypotheses the recognizer offered, best-first. Greek homophones
+         * are easily confused ("κάλεσε" comes back as "θάλασσα"), so the
+         * caller gets every reading rather than just the top one.
+         */
+        fun onResult(alternatives: List<String>)
         fun onError(message: String, lastPartial: String?)
     }
 
@@ -101,13 +108,18 @@ class SpeechController(private val context: Context) {
 
         override fun onResults(results: Bundle) {
             handler.removeCallbacksAndMessages(null)
-            val text = results
+            val alternatives = results
                 .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                ?.firstOrNull()
-                ?.takeIf { it.isNotBlank() }
-                ?: lastPartial
-            if (text != null) {
-                listener?.onResult(text)
+                ?.filter { it.isNotBlank() }
+                ?.takeIf { it.isNotEmpty() }
+                ?: listOfNotNull(lastPartial)
+
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "heard: $alternatives")
+            }
+
+            if (alternatives.isNotEmpty()) {
+                listener?.onResult(alternatives)
             } else {
                 listener?.onError(context.getString(R.string.speech_error_no_match), null)
             }
@@ -121,7 +133,7 @@ class SpeechController(private val context: Context) {
                 (error == SpeechRecognizer.ERROR_NO_MATCH ||
                     error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
             ) {
-                listener?.onResult(partial)
+                listener?.onResult(listOf(partial))
                 return
             }
             val message = when (error) {
@@ -150,6 +162,7 @@ class SpeechController(private val context: Context) {
     }
 
     companion object {
+        private const val TAG = "Mila"
         const val RECOGNITION_LOCALE = "el-GR"
 
         /** Silence after words have started that means the sentence is over. */

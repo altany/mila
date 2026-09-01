@@ -93,6 +93,34 @@ class ContactMatcherTest {
     }
 
     @Test
+    fun `a contact named only in a later alternative is still found`() {
+        val result = ContactMatcher.match(
+            listOf("Ελένη Βασιλείου", "Ελένη Βασιλείου"),
+            contacts,
+        )
+        assertEquals("+306900000005", single(result).number)
+    }
+
+    @Test
+    fun `the best scoring alternative wins`() {
+        // The top transcription is nobody; the second is an exact contact.
+        val result = ContactMatcher.match(
+            listOf("θάλασσα καφέ", "Kostas Dimitriou"),
+            contacts,
+        )
+        assertEquals("+306900000004", single(result).number)
+    }
+
+    @Test
+    fun `alternatives that match nobody still match nobody`() {
+        val result = ContactMatcher.match(
+            listOf("θάλασσα καφέ μπαρ", "πλατεία γεωργίου"),
+            contacts,
+        )
+        assertEquals(ContactMatcher.Result.None, result)
+    }
+
+    @Test
     fun `a small mishearing still finds the contact`() {
         // The recognizer often returns "Μαρια Παπαδοπουλου" with a dropped letter.
         val result = ContactMatcher.match("Μαρία Παπαδόπουλου", contacts)
