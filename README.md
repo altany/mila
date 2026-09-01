@@ -92,7 +92,8 @@ car's. Android Auto's own Assistant uses the car microphone, so it still hears
 you with the phone in a bag; Mila will not.
 
 **Greek needs a data connection.** Google ships no on-device (offline) speech
-model for `el-GR` — the phone's own language-pack list contains no Greek at all, and the recognizer reports `Failed to get language pack of required
+model for `el-GR` — the phone's own language-pack list contains no Greek at
+all, and the recognizer reports `Failed to get language pack of required
 locale` and falls back to the network recognizer. There is no setting to
 change this; it applies to any app using Android's `SpeechRecognizer`. Expect
 recognition to fail without signal, which is what the retry action is for.
