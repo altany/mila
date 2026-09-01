@@ -116,7 +116,13 @@ Sideloaded car apps are hidden until developer mode is on:
 ## Test on the Desktop Head Unit (DHU) without a car
 
 1. Install the DHU: Android Studio → SDK Manager → SDK Tools → **Android Auto
-   Desktop Head Unit Emulator**.
+   Desktop Head Unit Emulator**. From the command line instead:
+
+   ```bash
+   ~/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager "extras;google;auto"
+   ```
+
+   On first run you may need `chmod +x` on the `desktop-head-unit` binary.
 2. On the phone: Android Auto Developer settings → **Start head unit server**.
 3. Connect the phone by USB and forward the port, then run the DHU:
 
