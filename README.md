@@ -18,6 +18,12 @@ tells you the mic is open) — no mic tap.
 - **Κλήση (Call)** — say a contact name. If one contact clearly wins, it
   dials. If several are close, it shows a short pick list instead of guessing.
 
+You can also just say what you want and skip the buttons: an opening verb
+settles it either way, so "**κάλεσε** τον Δημήτρη" dials even when Navigate is
+selected, and "**πήγαινε** στην Πάτρα" navigates. Recognised verbs are κάλεσε,
+πάρε, τηλεφώνησε for calls and πήγαινε, πλοήγηση, οδήγησε, πάμε for
+navigation; the verb and its article are stripped before matching.
+
 Two big buttons switch modes, and switching restarts listening. If the
 recognizer gives up early, the screen keeps whatever it heard and offers
 **Ξαναπές το** (retry) or using the partial text.
@@ -81,6 +87,24 @@ proven open-source reference for this approach in real cars is
 [aa-speech-to-text](https://gitlab.com/ron.gr/aa-speech-to-text) (GPL-3.0),
 which this project used as a behavior reference. In practice, when the phone
 is connected to the car, the phone picks up in-cabin speech fine.
+
+**Greek needs a data connection.** Google ships no on-device (offline) speech
+model for `el-GR` — a test phone's own language-pack list contains no Greek at
+all, and the recognizer reports `Failed to get language pack of required
+locale` and falls back to the network recognizer. There is no setting to
+change this; it applies to any app using Android's `SpeechRecognizer`. Expect
+recognition to fail without signal, which is what the retry action is for.
+
+### Knowing when to stop listening
+
+The recognizer decides for itself when speech has ended and treats the
+`EXTRA_SPEECH_INPUT_*` timeouts as hints. A car cabin is never silent, so left
+alone it holds the microphone until its own 60-second server cap — the driver
+speaks and nothing happens for a minute, with separate attempts accumulating
+into one transcript. Mila therefore does its own endpointing: once words start
+arriving, a pause with no new partial results ends the turn, and a hard ceiling
+backstops it. This is the opposite failure from the reference app, which stops
+listening in under a second.
 
 ## Build
 
