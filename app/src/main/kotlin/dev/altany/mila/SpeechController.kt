@@ -3,14 +3,23 @@ package dev.altany.mila
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 
 /**
  * Wraps Android's SpeechRecognizer for hands-free use: listening starts
- * programmatically (no mic tap) and the silence timeouts are stretched so the
- * recognizer doesn't give up while the driver is still forming a sentence.
+ * programmatically (no mic tap) and ends on our own schedule.
+ *
+ * Google's recognizer decides for itself when speech has ended and largely
+ * treats the EXTRA_SPEECH_INPUT_* timeouts as hints. In a car the cabin is
+ * never truly silent, so left alone it can hold the mic open until its own
+ * 60-second server cap — the driver says an address and nothing happens for a
+ * minute. So we do the endpointing here: once words start arriving, a pause
+ * with no new words means the sentence is over, and a hard ceiling backstops
+ * the whole thing.
  */
 class SpeechController(private val context: Context) {
 
@@ -25,6 +34,7 @@ class SpeechController(private val context: Context) {
 
     private var recognizer: SpeechRecognizer? = null
     private var lastPartial: String? = null
+    private val handler = Handler(Looper.getMainLooper())
 
     val isAvailable: Boolean
         get() = SpeechRecognizer.isRecognitionAvailable(context)
@@ -35,17 +45,30 @@ class SpeechController(private val context: Context) {
             it.setRecognitionListener(recognitionListener)
             recognizer = it
         }
+        handler.removeCallbacksAndMessages(null)
         r.cancel()
         r.startListening(buildIntent())
+        handler.postDelayed(::finishListening, MAX_LISTEN_MS)
     }
 
     fun stop() {
+        handler.removeCallbacksAndMessages(null)
         recognizer?.cancel()
     }
 
     fun destroy() {
+        handler.removeCallbacksAndMessages(null)
         recognizer?.destroy()
         recognizer = null
+    }
+
+    /**
+     * Ask the recognizer to wrap up and return what it has heard. Unlike
+     * cancel(), this still delivers a result.
+     */
+    private fun finishListening() {
+        handler.removeCallbacksAndMessages(null)
+        recognizer?.stopListening()
     }
 
     private fun buildIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -54,11 +77,9 @@ class SpeechController(private val context: Context) {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, RECOGNITION_LOCALE)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        // Keep the mic open long enough for real driving speech: don't finish
-        // on a short pause, and never bail out in under a second.
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
-        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 6000L)
+        // Hints only — the timeouts above are what actually bound the wait.
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+        putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
     }
 
     private val recognitionListener = object : RecognitionListener {
@@ -73,9 +94,13 @@ class SpeechController(private val context: Context) {
                 ?.takeIf { it.isNotBlank() } ?: return
             lastPartial = text
             listener?.onPartial(text)
+            // Words are arriving: restart the "they've stopped talking" clock.
+            handler.removeCallbacksAndMessages(null)
+            handler.postDelayed(::finishListening, SILENCE_AFTER_SPEECH_MS)
         }
 
         override fun onResults(results: Bundle) {
+            handler.removeCallbacksAndMessages(null)
             val text = results
                 .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 ?.firstOrNull()
@@ -89,8 +114,16 @@ class SpeechController(private val context: Context) {
         }
 
         override fun onError(error: Int) {
-            // The recognizer sometimes quits early; if it already heard
-            // something usable, surface that instead of a dead end.
+            handler.removeCallbacksAndMessages(null)
+            // If we already heard something usable, use it rather than dead-ending.
+            val partial = lastPartial
+            if (partial != null &&
+                (error == SpeechRecognizer.ERROR_NO_MATCH ||
+                    error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
+            ) {
+                listener?.onResult(partial)
+                return
+            }
             val message = when (error) {
                 SpeechRecognizer.ERROR_NO_MATCH,
                 SpeechRecognizer.ERROR_SPEECH_TIMEOUT ->
@@ -102,11 +135,11 @@ class SpeechController(private val context: Context) {
                     context.getString(R.string.speech_error_permissions)
                 SpeechRecognizer.ERROR_RECOGNIZER_BUSY,
                 SpeechRecognizer.ERROR_CLIENT ->
-                    // Cancel/restart races surface as these; not worth showing.
+                    // Cancel/restart races surface as these and resolve themselves.
                     return
                 else -> context.getString(R.string.speech_error_generic, error)
             }
-            listener?.onError(message, lastPartial)
+            listener?.onError(message, partial)
         }
 
         override fun onBeginningOfSpeech() {}
@@ -118,5 +151,11 @@ class SpeechController(private val context: Context) {
 
     companion object {
         const val RECOGNITION_LOCALE = "el-GR"
+
+        /** Silence after words have started that means the sentence is over. */
+        private const val SILENCE_AFTER_SPEECH_MS = 1800L
+
+        /** Absolute ceiling on one listening turn. */
+        private const val MAX_LISTEN_MS = 12000L
     }
 }

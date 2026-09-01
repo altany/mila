@@ -9,8 +9,8 @@
     <string name="perm_calls">Κλήσεις</string>
     <string name="mode_navigate">Πλοήγηση</string>
     <string name="mode_call">Κλήση</string>
-    <string name="listening_navigate">Σε ακούω… Πες μου διεύθυνση ή προορισμό.</string>
-    <string name="listening_call">Σε ακούω… Πες μου όνομα επαφής.</string>
+    <string name="listening_navigate">Σε ακούω… Πες διεύθυνση, ή «κάλεσε» και όνομα.</string>
+    <string name="listening_call">Σε ακούω… Πες όνομα επαφής.</string>
     <string name="heard">Άκουσα: «%1$s»</string>
     <string name="error_retry">Ξαναπές το</string>
     <string name="error_use_partial">Χρήση αυτού</string>

@@ -17,6 +17,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import dev.altany.mila.match.Contact
 import dev.altany.mila.match.ContactMatcher
+import dev.altany.mila.match.SpokenCommand
 
 /**
  * The single car screen: starts listening as soon as it appears, shows the
@@ -37,6 +38,8 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
     private var mode = Mode.NAVIGATE
     private var state: UiState = UiState.Listening
     private var cachedContacts: List<Contact>? = null
+    private var partialText: String? = null
+    private var lastPartialRender = 0L
     private val speech = SpeechController(carContext)
     private val handler = Handler(Looper.getMainLooper())
     private val toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 80)
@@ -46,10 +49,17 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
         speech.listener = object : SpeechController.Listener {
             override fun onListening() {}
 
-            // Partials are kept by the controller for error recovery; the
-            // template is not refreshed per-partial because every content
-            // change costs a step of the host's task quota.
-            override fun onPartial(text: String) {}
+            // Showing words as they land is the only signal the driver gets
+            // that the mic is really working, but refreshing on every partial
+            // would spam the host, so it is throttled.
+            override fun onPartial(text: String) {
+                partialText = text
+                val now = System.currentTimeMillis()
+                if (now - lastPartialRender >= PARTIAL_RENDER_INTERVAL_MS) {
+                    lastPartialRender = now
+                    invalidate()
+                }
+            }
 
             override fun onResult(text: String) {
                 handleResult(text)
@@ -87,6 +97,8 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
     }
 
     private fun startListening() {
+        partialText = null
+        lastPartialRender = 0L
         setState(UiState.Listening)
         // Short prompt tone so the driver knows the mic is open, then start —
         // starting immediately can race the host's audio focus handover.
@@ -95,8 +107,16 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
         handler.postDelayed({ speech.startListening() }, 300)
     }
 
-    private fun handleResult(text: String) {
-        when (mode) {
+    private fun handleResult(spoken: String) {
+        // "κάλεσε τον Δημήτρη" means call, whichever button is selected.
+        val parsed = SpokenCommand.parse(spoken)
+        val text = parsed.query
+        val effectiveMode = when (parsed.intent) {
+            SpokenCommand.Intent.CALL -> Mode.CALL
+            SpokenCommand.Intent.NAVIGATE -> Mode.NAVIGATE
+            null -> mode
+        }
+        when (effectiveMode) {
             Mode.NAVIGATE -> {
                 CarToast.makeText(
                     carContext,
@@ -187,10 +207,11 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
                 icon = R.drawable.ic_mic
             }
             is UiState.Listening -> {
-                message = carContext.getString(
+                val prompt = carContext.getString(
                     if (mode == Mode.NAVIGATE) R.string.listening_navigate
                     else R.string.listening_call
                 )
+                message = partialText?.let { "$prompt\n\n“$it”" } ?: prompt
                 actions = listOf(
                     action(R.string.mode_navigate, primary = mode == Mode.NAVIGATE) {
                         switchMode(Mode.NAVIGATE)
@@ -238,6 +259,11 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
             )
         actions.forEach { builder.addAction(it) }
         return builder.build()
+    }
+
+    private companion object {
+        /** Floor between template refreshes while partial text streams in. */
+        const val PARTIAL_RENDER_INTERVAL_MS = 700L
     }
 
     private fun action(titleRes: Int, primary: Boolean, onClick: () -> Unit): Action {
