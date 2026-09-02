@@ -5,8 +5,14 @@ understand Greek in the car; Mila does. Open it on the car screen, it listens
 immediately — say an address to start Google Maps navigation, or a contact
 name to place a call.
 
-This is a personal tool, installed from a locally or CI-built APK. No Play
-Store, no backend, no analytics.
+A personal tool with no backend and no analytics.
+
+**It has to be installed from the Play Store to work in a car.** Android Auto
+does not show sideloaded car apps on a real head unit — it never even looks at
+them — and the "Unknown sources" developer setting doesn't change that. A
+sideloaded build works fine on the desktop emulator, which is what makes this
+so easy to get wrong. A private internal testing track is enough; a public
+listing isn't needed. See [Installing](#install-on-the-phone).
 
 ## How it works in the car
 
