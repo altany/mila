@@ -15,6 +15,7 @@ object ContactsRepository {
         val projection = arrayOf(
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
             ContactsContract.CommonDataKinds.Phone.NUMBER,
+            ContactsContract.CommonDataKinds.Phone.STARRED,
         )
 
         val contacts = mutableListOf<Contact>()
@@ -29,6 +30,7 @@ object ContactsRepository {
         )?.use { cursor ->
             val nameIndex = cursor.getColumnIndex(projection[0])
             val numberIndex = cursor.getColumnIndex(projection[1])
+            val starredIndex = cursor.getColumnIndex(projection[2])
             if (nameIndex < 0 || numberIndex < 0) return emptyList()
 
             while (cursor.moveToNext()) {
@@ -40,7 +42,8 @@ object ContactsRepository {
                 // distinct numbers but drop exact duplicates.
                 val key = name to number.filter { it.isDigit() || it == '+' }
                 if (seen.add(key)) {
-                    contacts += Contact(name, number)
+                    val starred = starredIndex >= 0 && cursor.getInt(starredIndex) == 1
+                    contacts += Contact(name, number, isFavourite = starred)
                 }
             }
         }

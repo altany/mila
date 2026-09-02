@@ -4,6 +4,8 @@ package dev.altany.mila.match
 data class Contact(
     val name: String,
     val number: String,
+    /** Starred in the phone's contacts. */
+    val isFavourite: Boolean = false,
 )
 
 data class ScoredContact(
@@ -33,6 +35,14 @@ object ContactMatcher {
     /** How many options the car screen offers when the match is unclear. */
     const val MAX_CANDIDATES = 5
 
+    /**
+     * Nudge given to starred contacts. Deliberately larger than [LEAD_MARGIN],
+     * so that among three equally-matching Δημήτρηδες the favourite is dialled
+     * instead of prompting — but small enough that a clearly better name match
+     * still wins, and any other Δημήτρης can still be reached by saying more.
+     */
+    const val FAVOURITE_BOOST = 0.12
+
     sealed interface Result {
         /** One clear winner — dial it. */
         data class Single(val contact: Contact, val score: Double) : Result
@@ -60,10 +70,15 @@ object ContactMatcher {
 
         val scored = contacts
             .map { contact ->
-                ScoredContact(
-                    contact,
-                    queryVariantSets.maxOf { score(it, contact.name) },
-                )
+                val base = queryVariantSets.maxOf { score(it, contact.name) }
+                // Only nudge candidates that already look plausible, so an
+                // unrelated favourite is never pulled into the running.
+                val boosted = if (contact.isFavourite && base >= MIN_SCORE) {
+                    minOf(1.0, base + FAVOURITE_BOOST)
+                } else {
+                    base
+                }
+                ScoredContact(contact, boosted)
             }
             .filter { it.score >= MIN_SCORE }
             .sortedByDescending { it.score }

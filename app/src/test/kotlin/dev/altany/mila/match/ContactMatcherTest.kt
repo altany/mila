@@ -121,6 +121,37 @@ class ContactMatcherTest {
     }
 
     @Test
+    fun `a favourite wins among equally matching namesakes`() {
+        val dimitrides = listOf(
+            Contact("Δημήτρης Σωτηρόπουλος", "+306900000010"),
+            Contact("Δημήτρης", "+306900000011", isFavourite = true),
+            Contact("Δημήτρης Χατζάκος", "+306900000012"),
+        )
+        val result = ContactMatcher.match("Δημήτρη", dimitrides)
+        assertEquals("+306900000011", single(result).number)
+    }
+
+    @Test
+    fun `naming a non-favourite still reaches them`() {
+        val dimitrides = listOf(
+            Contact("Δημήτρης Σωτηρόπουλος", "+306900000010"),
+            Contact("Δημήτρης", "+306900000011", isFavourite = true),
+            Contact("Δημήτρης Χατζάκος", "+306900000012"),
+        )
+        val result = ContactMatcher.match("Δημήτρης Χατζάκος", dimitrides)
+        assertEquals("+306900000012", single(result).number)
+    }
+
+    @Test
+    fun `an unrelated favourite is not pulled into the running`() {
+        val people = listOf(
+            Contact("Ελένη Βασιλείου", "+306900000005"),
+            Contact("Γιώργος Ανδρέου", "+306900000003", isFavourite = true),
+        )
+        assertEquals("+306900000005", single(ContactMatcher.match("Ελένη", people)).number)
+    }
+
+    @Test
     fun `a small mishearing still finds the contact`() {
         // The recognizer often returns "Μαρια Παπαδοπουλου" with a dropped letter.
         val result = ContactMatcher.match("Μαρία Παπαδόπουλου", contacts)
