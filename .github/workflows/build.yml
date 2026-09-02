@@ -49,17 +49,11 @@ jobs:
         run: |
           cp app/build/outputs/apk/release/app-release.apk mila-${{ github.ref_name }}.apk
           cp app/build/outputs/bundle/release/app-release.aab mila-${{ github.ref_name }}.aab
-      - name: Authenticate to Google
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          token_format: access_token
-          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
-        id: gauth
       - name: Publish to the internal testing track
         env:
-          PLAY_ACCESS_TOKEN: ${{ steps.gauth.outputs.access_token }}
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
+          export PLAY_ACCESS_TOKEN="$(./scripts/play-token.sh)"
           ./scripts/publish-play.sh "mila-${{ github.ref_name }}.aab" \
             "Release notes: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
       - name: Create GitHub Release with APK
