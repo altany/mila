@@ -119,6 +119,39 @@ contact matching scores every alternative and keeps each contact's best, so a
 name mangled in the top transcription can still be found in another reading.
 Debug builds log the hypotheses under the `Mila` tag.
 
+## Using it in another language
+
+Nothing here is Greek by necessity — the problem is that Android Auto supports
+a fixed list of languages and yours may not be on it. Forking this for another
+language means changing four things:
+
+1. **The recognition locale.** `SpeechController.RECOGNITION_LOCALE` is
+   `"el-GR"`. Set it to yours, and check Android's recognizer actually supports
+   it — the list is not the same as the one Android Auto supports, which is the
+   whole reason this app exists.
+2. **The command words.** `SpokenCommand` holds `callVerbs`, `navVerbs` and
+   `fillers` — the words that mean "call", "navigate", and the articles that
+   get stripped before matching. Replace them with your language's. Note the
+   words are normalized before comparison, so write them the way
+   `GreekText.normalize` would leave them.
+3. **The name matching.** `GreekText` maps Greek to a Latin "phonetic key" so
+   that a name spoken in Greek matches a contact saved in Latin letters. If
+   your language already uses the Latin alphabet, you probably don't need any
+   of this: strip accents and case, and compare with `similarity` directly.
+   If it uses another script, you need the equivalent mapping — and the
+   interesting part is the ambiguity handling, where one letter has several
+   plausible readings and each expands into variants.
+4. **The interface text.** `app/src/main/res/values/strings.xml`.
+
+The parts worth keeping as-is are the ones that took the longest to get right
+and aren't language-specific: ending the listening turn yourself rather than
+trusting the recognizer, and using every recognition hypothesis instead of the
+top one.
+
+One thing that isn't optional: **the app has to be installed from the Play
+Store to appear in a real car.** A sideloaded build works on the emulator and
+is invisible in the car. An internal testing track is enough — see below.
+
 ## Build
 
 Requirements: JDK 17+, Android SDK (platform 36). A `local.properties` with
