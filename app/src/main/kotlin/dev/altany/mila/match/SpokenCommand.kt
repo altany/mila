@@ -21,17 +21,20 @@ object SpokenCommand {
 
     private val callVerbs = setOf(
         "καλεσε", "καλεσε_με", "παρε", "τηλεφωνησε", "τηλεφωνο", "κλησε", "κληση",
-    )
+    ).map(GreekText::normalize).toSet()
 
     private val navVerbs = setOf(
         "πηγαινε", "πηγαινε_με", "πλοηγηση", "πλοηγησε", "οδηγησε", "παμε", "πλοηγησου",
-    )
+    ).map(GreekText::normalize).toSet()
 
     /** Articles and pronouns that trail the verb and carry no meaning for us. */
     private val fillers = setOf(
         "το", "τον", "την", "τη", "στο", "στον", "στη", "στην", "σε",
         "μου", "με", "προς", "στα", "στις", "τους", "τις",
-    )
+        // Genitive: "πάρε τηλέφωνο του Δημήτρη"
+        "του", "της", "των", "στου", "στης", "στων",
+        // normalize() folds final sigma, so these must be folded too
+    ).map(GreekText::normalize).toSet()
 
     /**
      * Picks the reading that actually carries a command.
@@ -59,9 +62,12 @@ object SpokenCommand {
             else -> null
         } ?: return Parsed(null, spoken.trim())
 
+        // Command phrases run to more than one word — "πάρε τηλέφωνο τον
+        // Δημήτρη" — so keep dropping verbs and articles until a name is left.
         var rest = words.drop(1)
-        while (rest.isNotEmpty() && GreekText.normalize(rest[0]) in fillers) {
-            rest = rest.drop(1)
+        while (rest.isNotEmpty()) {
+            val w = GreekText.normalize(rest[0])
+            if (w in fillers || w in callVerbs || w in navVerbs) rest = rest.drop(1) else break
         }
 
         // "κάλεσε" with nothing after it isn't a command we can act on; keep the

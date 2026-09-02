@@ -40,6 +40,7 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
     private var cachedContacts: List<Contact>? = null
     private var partialText: String? = null
     private var lastPartialRender = 0L
+    private var autoRetries = 0
     private val speech = SpeechController(carContext)
     private val handler = Handler(Looper.getMainLooper())
     private val toneGenerator = ToneGenerator(AudioManager.STREAM_MUSIC, 80)
@@ -67,6 +68,13 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
 
             override fun onError(message: String, lastPartial: String?) {
                 setState(UiState.Error(message, lastPartial))
+                // Reaching for the screen to tap "try again" is the last thing a
+                // driver should do, so pick the mic back up automatically — but
+                // only a couple of times, or a noisy cabin loops forever.
+                if (lastPartial == null && autoRetries < MAX_AUTO_RETRIES) {
+                    autoRetries++
+                    handler.postDelayed({ startListening(resetRetries = false) }, AUTO_RETRY_DELAY_MS)
+                }
             }
         }
     }
@@ -96,7 +104,8 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
         toneGenerator.release()
     }
 
-    private fun startListening() {
+    private fun startListening(resetRetries: Boolean = true) {
+        if (resetRetries) autoRetries = 0
         partialText = null
         lastPartialRender = 0L
         setState(UiState.Listening)
@@ -108,6 +117,7 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
     }
 
     private fun handleResult(alternatives: List<String>) {
+        autoRetries = 0
         // "κάλεσε τον Δημήτρη" means call, whichever button is selected — and
         // the verb may only be right in one of the recognizer's alternatives.
         val parsed = SpokenCommand.parseBest(alternatives)
@@ -170,7 +180,12 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
         when (val result = ContactMatcher.match(queries, contacts)) {
             is ContactMatcher.Result.Single -> CallLauncher.call(carContext, result.contact)
             is ContactMatcher.Result.Choice ->
-                screenManager.push(ContactPickerScreen(carContext, result.candidates, spoken))
+                screenManager.push(
+                    ContactPickerScreen(carContext, result.candidates, spoken) {
+                        screenManager.popToRoot()
+                        startListening()
+                    }
+                )
             ContactMatcher.Result.None -> setState(
                 UiState.Error(carContext.getString(R.string.no_contact_found, spoken), null)
             )
@@ -268,6 +283,12 @@ class MainScreen(carContext: CarContext) : Screen(carContext), DefaultLifecycleO
     private companion object {
         /** Floor between template refreshes while partial text streams in. */
         const val PARTIAL_RENDER_INTERVAL_MS = 700L
+
+        /** How long the error stays up before the mic reopens by itself. */
+        const val AUTO_RETRY_DELAY_MS = 1800L
+
+        /** Cap, so a noisy cabin can't put it in a listening loop. */
+        const val MAX_AUTO_RETRIES = 2
     }
 
     private fun action(titleRes: Int, primary: Boolean, onClick: () -> Unit): Action {

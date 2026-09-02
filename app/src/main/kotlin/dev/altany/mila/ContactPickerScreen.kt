@@ -18,6 +18,7 @@ class ContactPickerScreen(
     carContext: CarContext,
     private val candidates: List<ScoredContact>,
     private val spoken: String,
+    private val onSayAgain: () -> Unit,
 ) : Screen(carContext) {
 
     override fun onGetTemplate(): Template {
@@ -34,6 +35,15 @@ class ContactPickerScreen(
                     .build()
             )
         }
+
+        // Changing your mind here shouldn't mean going back and hunting for a
+        // button; one tap puts the mic straight back on.
+        list.addItem(
+            Row.Builder()
+                .setTitle(carContext.getString(R.string.error_retry))
+                .setOnClickListener { onSayAgain() }
+                .build()
+        )
 
         return ListTemplate.Builder()
             .setHeader(

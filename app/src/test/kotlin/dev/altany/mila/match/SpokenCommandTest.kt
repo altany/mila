@@ -27,6 +27,26 @@ class SpokenCommandTest {
     }
 
     @Test
+    fun `multi-word call phrases are stripped whole`() {
+        // Heard in the car: "πάρε τηλέφωνο το Δημήτρη" searched for
+        // "τηλέφωνο του δημήτρη" and matched nobody.
+        val parsed = SpokenCommand.parse("πάρε τηλέφωνο το Δημήτρη")
+        assertEquals(SpokenCommand.Intent.CALL, parsed.intent)
+        assertEquals("Δημήτρη", parsed.query)
+    }
+
+    @Test
+    fun `genitive articles are dropped`() {
+        assertEquals("Δημήτρη", SpokenCommand.parse("πάρε τηλέφωνο του Δημήτρη").query)
+        assertEquals("Μαρίας", SpokenCommand.parse("κάλεσε της Μαρίας").query)
+    }
+
+    @Test
+    fun `a verb phrase with no name left is not a command`() {
+        assertNull(SpokenCommand.parse("πάρε τηλέφωνο").intent)
+    }
+
+    @Test
     fun `navigation verb routes to navigate`() {
         val parsed = SpokenCommand.parse("πήγαινε στην Πάτρα")
         assertEquals(SpokenCommand.Intent.NAVIGATE, parsed.intent)
