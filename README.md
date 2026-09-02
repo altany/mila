@@ -221,17 +221,43 @@ symptom.
 
 GitHub Actions ([build.yml](.github/workflows/build.yml)):
 
-- **Push to `main`** → debug APK uploaded as a workflow artifact.
-- **Tag `v*`** → signed release APK attached to a GitHub Release. That
-  Releases page is the delivery channel: open it on the phone, download,
-  install.
+- **Push to `main`** → tests run and a debug APK is uploaded as a workflow
+  artifact.
+- **Tag `v*`** → tests run, then the signed APK and app bundle are attached to
+  a GitHub Release **and the bundle is published to Play's internal testing
+  track**. The build reaches the phone as an ordinary app update.
 
-Release in one step (bumps version, tags, pushes; CI does the rest):
+Release in one step:
 
 ```bash
 scripts/release.sh          # patch bump
 scripts/release.sh 0.2.0    # explicit version
 ```
+
+That means a change can go from an edit to running in the car without a
+laptop: push a tag from anywhere, and Play delivers it.
+
+### Publishing to Play
+
+The app **must** be installed from Play to appear in a real car, so the
+release job publishes automatically. Two small scripts do it:
+
+- [`scripts/play-token.sh`](scripts/play-token.sh) swaps the service account
+  key for a short-lived token using the standard JWT-bearer flow. Done directly
+  rather than through a generic auth action, which mints tokens by
+  impersonating the service account and needs the IAM Credentials API plus a
+  token-creator role granted to the account on itself.
+- [`scripts/publish-play.sh`](scripts/publish-play.sh) makes four REST calls —
+  open an edit, upload the bundle, point the internal track at it, commit —
+  retrying on 5xx, because the Play API returns 503 often enough that one
+  attempt isn't a fair test.
+
+No third-party action handles the credential. Setting this up needs a Google
+Cloud service account with the **Google Play Android Developer API** enabled,
+invited into Play Console under Users and permissions with only *Release apps
+to testing tracks* and *View app information*. Its JSON key goes in the
+`PLAY_SERVICE_ACCOUNT_JSON` secret. Scoped that way, the worst a leaked key
+could do is push a build to your own test track.
 
 ### Signing
 

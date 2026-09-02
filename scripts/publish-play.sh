@@ -29,14 +29,33 @@ check() {
   fi
 }
 
+# The Play API returns a 503 often enough that a single attempt is not a fair
+# test of whether a release worked. Retry those; anything else is a real error
+# and should surface immediately.
+retry() {
+  local what=$1; shift
+  local attempt=1 max=4 response code
+  while :; do
+    response=$("$@")
+    code=$(echo "$response" | jq -r '.error.code // empty')
+    if [[ -z "$code" || $code -lt 500 || $attempt -ge $max ]]; then
+      echo "$response"
+      return 0
+    fi
+    echo "  $what: HTTP $code, retrying ($attempt/$((max - 1)))..." >&2
+    sleep $((attempt * 5))
+    attempt=$((attempt + 1))
+  done
+}
+
 echo "Opening an edit..."
-edit=$(curl -sS -X POST "${auth[@]}" -H "Content-Length: 0" "$API/edits")
+edit=$(retry "opening the edit" curl -sS -X POST "${auth[@]}" -H "Content-Length: 0" "$API/edits")
 check "$edit" "creating the edit"
 EDIT_ID=$(echo "$edit" | jq -r .id)
 echo "  edit $EDIT_ID"
 
 echo "Uploading $(basename "$BUNDLE")..."
-uploaded=$(curl -sS -X POST "${auth[@]}" \
+uploaded=$(retry "uploading" curl -sS -X POST "${auth[@]}" \
   -H "Content-Type: application/octet-stream" \
   --data-binary @"$BUNDLE" \
   "$UPLOAD/edits/$EDIT_ID/bundles?uploadType=media")
@@ -53,14 +72,14 @@ release=$(jq -n --argjson vc "$VERSION_CODE" --arg notes "$NOTES" '{
     releaseNotes: (if $notes == "" then [] else [{language: "en-GB", text: $notes}] end)
   }]
 }')
-tracked=$(curl -sS -X PUT "${auth[@]}" \
+tracked=$(retry "assigning the track" curl -sS -X PUT "${auth[@]}" \
   -H "Content-Type: application/json" \
   -d "$release" \
   "$API/edits/$EDIT_ID/tracks/$TRACK")
 check "$tracked" "assigning the track"
 
 echo "Committing..."
-committed=$(curl -sS -X POST "${auth[@]}" -H "Content-Length: 0" \
+committed=$(retry "committing" curl -sS -X POST "${auth[@]}" -H "Content-Length: 0" \
   "$API/edits/$EDIT_ID:commit")
 check "$committed" "committing the edit"
 
