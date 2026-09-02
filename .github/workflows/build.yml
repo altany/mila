@@ -38,15 +38,17 @@ jobs:
         run: |
           mkdir -p keystore
           echo "${{ secrets.MILA_KEYSTORE_BASE64 }}" | base64 -d > keystore/mila.jks
-      - name: Build signed release APK
+      - name: Build signed release APK and bundle
         env:
           MILA_KEYSTORE_FILE: keystore/mila.jks
           MILA_KEYSTORE_PASSWORD: ${{ secrets.MILA_KEYSTORE_PASSWORD }}
           MILA_KEY_ALIAS: ${{ secrets.MILA_KEY_ALIAS }}
           MILA_KEY_PASSWORD: ${{ secrets.MILA_KEY_PASSWORD }}
-        run: ./gradlew test assembleRelease
-      - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk mila-${{ github.ref_name }}.apk
+        run: ./gradlew test assembleRelease bundleRelease
+      - name: Name the artifacts
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk mila-${{ github.ref_name }}.apk
+          cp app/build/outputs/bundle/release/app-release.aab mila-${{ github.ref_name }}.aab
       - name: Create GitHub Release with APK
         env:
           GH_TOKEN: ${{ github.token }}
@@ -55,4 +57,5 @@ jobs:
             --repo "${{ github.repository }}" \
             --title "Mila ${{ github.ref_name }}" \
             --generate-notes \
-            mila-${{ github.ref_name }}.apk
+            mila-${{ github.ref_name }}.apk \
+            mila-${{ github.ref_name }}.aab
