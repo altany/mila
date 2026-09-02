@@ -17,3 +17,9 @@ keystore/
 keystore.properties
 *.jks
 *.keystore
+
+# Google Play service account key - never commit
+mila-ci-*.json
+*service-account*.json
+*-gcp-*.json
+gcloud-*.json
