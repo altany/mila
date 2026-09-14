@@ -19,7 +19,7 @@ jobs:
       - run: ./gradlew test assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: mila-debug-apk
+          name: pesto-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
   release-apk:
@@ -47,14 +47,14 @@ jobs:
         run: ./gradlew test assembleRelease bundleRelease
       - name: Name the artifacts
         run: |
-          cp app/build/outputs/apk/release/app-release.apk mila-${{ github.ref_name }}.apk
-          cp app/build/outputs/bundle/release/app-release.aab mila-${{ github.ref_name }}.aab
+          cp app/build/outputs/apk/release/app-release.apk pesto-${{ github.ref_name }}.apk
+          cp app/build/outputs/bundle/release/app-release.aab pesto-${{ github.ref_name }}.aab
       - name: Publish to the internal testing track
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
           export PLAY_ACCESS_TOKEN="$(./scripts/play-token.sh)"
-          ./scripts/publish-play.sh "mila-${{ github.ref_name }}.aab" \
+          ./scripts/publish-play.sh "pesto-${{ github.ref_name }}.aab" \
             "Release notes: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
       - name: Create GitHub Release with APK
         env:
@@ -62,7 +62,7 @@ jobs:
         run: |
           gh release create "${{ github.ref_name }}" \
             --repo "${{ github.repository }}" \
-            --title "Mila ${{ github.ref_name }}" \
+            --title "Pesto ${{ github.ref_name }}" \
             --generate-notes \
-            mila-${{ github.ref_name }}.apk \
-            mila-${{ github.ref_name }}.aab
+            pesto-${{ github.ref_name }}.apk \
+            pesto-${{ github.ref_name }}.aab

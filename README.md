@@ -1,11 +1,20 @@
-# Mila (Μίλα)
+# Pesto
 
 Greek voice commands for Android Auto. Google Assistant and Gemini don't
-understand Greek in the car; Mila does. Open it on the car screen, it listens
+understand Greek in the car; Pesto does. Open it on the car screen, it listens
 immediately — say an address to start Google Maps navigation, or a contact
 name to place a call.
 
 A personal tool with no backend and no analytics.
+
+**Why "Pesto".** The app was called Mila (Μίλα) until v0.1.6. To open it by
+voice you say its name to Google Assistant or Gemini, and they listen in
+English. Spoken with a Greek accent, "Mila" came back as "Myla", "Miele" and
+"my", and the app didn't open. Pesto is a word English speech recognition
+already knows and it sounds the same in Greek. The package name is still
+`dev.altany.mila`: Play identifies an app by it, so changing it would publish
+a separate app instead of an update. Internal class, keystore and secret names
+keep the old name too; nobody sees them.
 
 **It has to be installed from the Play Store to work in a car.** Android Auto
 does not show sideloaded car apps on a real head unit — it never even looks at
@@ -16,10 +25,10 @@ listing isn't needed. See [Installing](#install-on-the-phone).
 
 ## How it works in the car
 
-Open Mila on the car screen. It starts listening immediately (a short tone
+Open Pesto on the car screen. It starts listening immediately (a short tone
 tells you the mic is open) — no mic tap.
 
-- **Πλοήγηση (Navigate)** — say a destination. Mila hands it to Google Maps
+- **Πλοήγηση (Navigate)** — say a destination. Pesto hands it to Google Maps
   and navigation starts.
 - **Κλήση (Call)** — say a contact name. If one contact clearly wins, it
   dials. If several are close, it shows a short pick list instead of guessing.
@@ -93,9 +102,9 @@ proven open-source reference for this approach in real cars is
 [aa-speech-to-text](https://gitlab.com/ron.gr/aa-speech-to-text) (GPL-3.0),
 which this project used as a behavior reference.
 
-Note that this means Mila listens through the **phone's** microphone, not the
+Note that this means Pesto listens through the **phone's** microphone, not the
 car's. Android Auto's own Assistant uses the car microphone, so it still hears
-you with the phone in a bag; Mila will not.
+you with the phone in a bag; Pesto will not.
 
 **Greek needs a data connection.** Google ships no on-device (offline) speech
 model for `el-GR` — the phone's own language-pack list contains no Greek at
@@ -110,7 +119,7 @@ The recognizer decides for itself when speech has ended and treats the
 `EXTRA_SPEECH_INPUT_*` timeouts as hints. A car cabin is never silent, so left
 alone it holds the microphone until its own 60-second server cap — the driver
 speaks and nothing happens for a minute, with separate attempts accumulating
-into one transcript. Mila therefore does its own endpointing: once words start
+into one transcript. Pesto therefore does its own endpointing: once words start
 arriving, a pause with no new partial results ends the turn, and a hard ceiling
 backstops it. Erring the other way is just as bad: too short a timeout cuts the
 driver off mid-address.
@@ -123,7 +132,7 @@ beach bar. Three hypotheses are requested and all of them are used: the intent
 comes from the first alternative that opens with a real command verb, and
 contact matching scores every alternative and keeps each contact's best, so a
 name mangled in the top transcription can still be found in another reading.
-Debug builds log the hypotheses under the `Mila` tag.
+Debug builds log the hypotheses under the `Pesto` tag.
 
 ## Using it in another language
 
@@ -186,7 +195,7 @@ Sideloaded car apps are hidden until developer mode is on:
    "Android Auto").
 2. Tap the version number ~10 times to enable Developer settings.
 3. Overflow menu → Developer settings → enable **Unknown sources**.
-4. Restart Android Auto (or replug the phone). Mila appears in the car
+4. Restart Android Auto (or replug the phone). Pesto appears in the car
    launcher.
 
 ## Test on the Desktop Head Unit (DHU) without a car

@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">Mila</string>
-    <string name="setup_title">Μίλα</string>
-    <string name="setup_explainer">Η Μίλα χρειάζεται πρόσβαση στο μικρόφωνο, στις επαφές και στις κλήσεις για να δουλέψει στο αυτοκίνητο. Όλα γίνονται στο τηλέφωνο — τίποτα δεν αποθηκεύεται αλλού.</string>
+    <string name="app_name">Pesto</string>
+    <string name="setup_title">Pesto</string>
+    <string name="setup_explainer">Το Pesto χρειάζεται πρόσβαση στο μικρόφωνο, στις επαφές και στις κλήσεις για να δουλέψει στο αυτοκίνητο. Όλα γίνονται στο τηλέφωνο — τίποτα δεν αποθηκεύεται αλλού.</string>
     <string name="setup_grant">Παραχώρηση αδειών</string>
-    <string name="setup_done">Όλα έτοιμα! Δεν χρειάζεσαι άλλο το τηλέφωνο — άνοιξε τη Μίλα στην οθόνη του αυτοκινήτου.</string>
+    <string name="setup_done">Όλα έτοιμα! Δεν χρειάζεσαι άλλο το τηλέφωνο — άνοιξε το Pesto στην οθόνη του αυτοκινήτου.</string>
     <string name="perm_mic">Μικρόφωνο</string>
     <string name="perm_contacts">Επαφές</string>
     <string name="perm_calls">Κλήσεις</string>
@@ -15,7 +15,7 @@
     <string name="error_retry">Ξαναπές το</string>
     <string name="error_use_partial">Χρήση αυτού</string>
     <string name="recheck">Έλεγχος ξανά</string>
-    <string name="car_needs_setup">Ολοκλήρωσε τη ρύθμιση στο τηλέφωνο: άνοιξε τη Μίλα και δώσε άδειες για μικρόφωνο, επαφές και κλήσεις.</string>
+    <string name="car_needs_setup">Ολοκλήρωσε τη ρύθμιση στο τηλέφωνο: άνοιξε το Pesto και δώσε άδειες για μικρόφωνο, επαφές και κλήσεις.</string>
     <string name="no_recognizer">Δεν βρέθηκε υπηρεσία αναγνώρισης ομιλίας στο τηλέφωνο.</string>
     <string name="navigating_to">Πλοήγηση: %1$s</string>
     <string name="calling">Κλήση: %1$s</string>

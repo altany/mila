@@ -162,7 +162,7 @@ class SpeechController(private val context: Context) {
     }
 
     companion object {
-        private const val TAG = "Mila"
+        private const val TAG = "Pesto"
         const val RECOGNITION_LOCALE = "el-GR"
 
         /** Silence after words have started that means the sentence is over. */
