@@ -43,6 +43,17 @@ Two big buttons switch modes, and switching restarts listening. If the
 recognizer gives up early, the screen keeps whatever it heard and offers
 **Ξαναπές το** (retry) or using the partial text.
 
+### Opening it by voice
+
+The steering-wheel button opens the phone's assistant, which can launch apps by
+name — but it listens in English, not Greek. That's why the app is called
+Pesto: English recognition already knows the word, and it sounds the same said
+with a Greek accent.
+
+Say **"Launch Pesto"**. The verb does the work. Plain "Pesto" gets you a reply
+about the sauce, or that the assistant can't open apps. "Open the Pesto app"
+works too, but it's longer and the article is easy to drop.
+
 ## Architecture (one page)
 
 - **Android Auto projection app** built on `androidx.car.app` (the Android for
@@ -138,7 +149,7 @@ Debug builds log the hypotheses under the `Pesto` tag.
 
 Nothing here is Greek by necessity — the problem is that Android Auto supports
 a fixed list of languages and yours may not be on it. Forking this for another
-language means changing four things:
+language means changing five things:
 
 1. **The recognition locale.** `SpeechController.RECOGNITION_LOCALE` is
    `"el-GR"`. Set it to yours, and check Android's recognizer actually supports
@@ -157,6 +168,11 @@ language means changing four things:
    interesting part is the ambiguity handling, where one letter has several
    plausible readings and each expands into variants.
 4. **The interface text.** `app/src/main/res/values/strings.xml`.
+5. **The launcher name.** `app_name` in the same file. Pick something English
+   speech recognition already knows as a word — the phone's assistant listens
+   in English whatever language the app works in, and a transliterated name in
+   your own language will get misheard. That's the whole reason this one is
+   called Pesto and not Mila.
 
 The parts worth keeping as-is are the ones that took the longest to get right
 and aren't language-specific: ending the listening turn yourself rather than
