@@ -56,6 +56,8 @@ jobs:
           export PLAY_ACCESS_TOKEN="$(./scripts/play-token.sh)"
           ./scripts/publish-play.sh "pesto-${{ github.ref_name }}.aab" \
             "Release notes: ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+      # A release made by hand in GitHub (which is what creates the tag) already
+      # exists by now, so attach the files to it instead.
       - name: Create GitHub Release with APK
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,5 +66,8 @@ jobs:
             --repo "${{ github.repository }}" \
             --title "Pesto ${{ github.ref_name }}" \
             --generate-notes \
+            pesto-${{ github.ref_name }}.apk \
+            pesto-${{ github.ref_name }}.aab \
+          || gh release upload "${{ github.ref_name }}" --repo "${{ github.repository }}" --clobber \
             pesto-${{ github.ref_name }}.apk \
             pesto-${{ github.ref_name }}.aab
