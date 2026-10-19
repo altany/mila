@@ -26,4 +26,17 @@
     <string name="speech_error_network">Πρόβλημα δικτύου στην αναγνώριση.</string>
     <string name="speech_error_permissions">Λείπει η άδεια μικροφώνου.</string>
     <string name="speech_error_generic">Σφάλμα αναγνώρισης (%1$d).</string>
+    <!-- EXPERIMENT: car-microphone probe. Remove with AudioInjectionProbe. -->
+    <string name="probe_button">Δοκιμή: μικρόφωνο αυτοκινήτου</string>
+    <string name="probe_preparing">Ετοιμάζω την ηχογραφημένη φράση… Μη μιλάς.</string>
+    <string name="probe_listening">Δίνω τη φράση στην αναγνώριση… Μη μιλάς.</string>
+    <string name="probe_hearing">Ακούει: «%1$s»</string>
+    <string name="probe_works">✓ Δουλεύει. Η αναγνώριση άκουσε τη φράση που της δώσαμε: «%1$s»</string>
+    <string name="probe_other_words">✗ Άκουσε άλλα λόγια: «%1$s». Μάλλον άκουσε το μικρόφωνο του κινητού αντί για τη φράση.</string>
+    <string name="probe_nothing">✗ Δεν άκουσε τίποτα. Μάλλον αγνοεί τον ήχο που της δίνουμε.</string>
+    <string name="probe_nothing_error">✗ Δεν άκουσε τίποτα (σφάλμα %1$d). Μάλλον αγνοεί τον ήχο που της δίνουμε.</string>
+    <string name="probe_no_tts">Δεν ξεκίνησε η σύνθεση φωνής του κινητού, οπότε η δοκιμή δεν έγινε.</string>
+    <string name="probe_no_greek_voice">Λείπει η ελληνική φωνή από τη σύνθεση φωνής του κινητού. Ρυθμίσεις → Μετατροπή κειμένου σε ομιλία → εγκατάσταση ελληνικών, και ξανά.</string>
+    <string name="probe_bad_audio">Πρόβλημα με την ηχογραφημένη φράση: %1$s</string>
+    <string name="probe_needs_android13">Χρειάζεται Android 13 ή νεότερο.</string>
 </resources>
