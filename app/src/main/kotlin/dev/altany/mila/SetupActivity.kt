@@ -2,7 +2,6 @@ package dev.altany.mila
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.os.Build
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
@@ -25,11 +24,6 @@ class SetupActivity : ComponentActivity() {
     private lateinit var statusText: TextView
     private lateinit var checklist: TextView
     private lateinit var grantButton: Button
-
-    // EXPERIMENT: car-microphone probe. Remove with AudioInjectionProbe.
-    private lateinit var probeButton: Button
-    private lateinit var probeText: TextView
-    private var probe: AudioInjectionProbe? = null
 
     private val requestPermissions =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -75,18 +69,6 @@ class SetupActivity : ComponentActivity() {
         }
         root.addView(grantButton)
 
-        probeText = TextView(this).apply {
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            gravity = Gravity.CENTER
-            setPadding(0, pad, 0, 0)
-        }
-        probeButton = Button(this).apply {
-            text = getString(R.string.probe_button)
-            setOnClickListener { runProbe() }
-        }
-        root.addView(probeButton)
-        root.addView(probeText)
-
         setContentView(root)
         WindowCompat.getInsetsController(window, root).isAppearanceLightStatusBars = true
     }
@@ -113,22 +95,6 @@ class SetupActivity : ComponentActivity() {
             if (ready) R.string.setup_done else R.string.setup_explainer
         )
         grantButton.visibility = if (ready) View.GONE else View.VISIBLE
-        probeButton.visibility = if (ready) View.VISIBLE else View.GONE
-        probeText.visibility = probeButton.visibility
-    }
-
-    private fun runProbe() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            probeText.text = getString(R.string.probe_needs_android13)
-            return
-        }
-        val p = probe ?: AudioInjectionProbe(this) { probeText.text = it }.also { probe = it }
-        p.run()
-    }
-
-    override fun onDestroy() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) probe?.cancel()
-        super.onDestroy()
     }
 
     companion object {

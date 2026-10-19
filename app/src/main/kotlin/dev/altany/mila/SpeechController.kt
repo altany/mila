@@ -21,6 +21,9 @@ import android.util.Log
  * minute. So we do the endpointing here: once words start arriving, a pause
  * with no new words means the sentence is over, and a hard ceiling backstops
  * the whole thing.
+ *
+ * In the car the audio comes from the car's own microphone when it can
+ * (see CarMicFeed), and from the phone's otherwise.
  */
 class SpeechController(private val context: Context) {
 
@@ -41,6 +44,10 @@ class SpeechController(private val context: Context) {
 
     private var recognizer: SpeechRecognizer? = null
     private var lastPartial: String? = null
+    private var carMic: CarMicFeed? = null
+
+    /** Set once the car mic fails, so later turns don't keep trying it. */
+    private var carMicFailed = false
     private val handler = Handler(Looper.getMainLooper())
 
     val isAvailable: Boolean
@@ -54,19 +61,24 @@ class SpeechController(private val context: Context) {
         }
         handler.removeCallbacksAndMessages(null)
         r.cancel()
-        r.startListening(buildIntent())
+        closeCarMic()
+        val feed = if (carMicFailed) null else CarMicFeed.openOrNull(context, ::onCarMicEnded)
+        carMic = feed
+        r.startListening(buildIntent().also { feed?.addTo(it) })
         handler.postDelayed(::finishListening, MAX_LISTEN_MS)
     }
 
     fun stop() {
         handler.removeCallbacksAndMessages(null)
         recognizer?.cancel()
+        closeCarMic()
     }
 
     fun destroy() {
         handler.removeCallbacksAndMessages(null)
         recognizer?.destroy()
         recognizer = null
+        closeCarMic()
     }
 
     /**
@@ -75,7 +87,35 @@ class SpeechController(private val context: Context) {
      */
     private fun finishListening() {
         handler.removeCallbacksAndMessages(null)
+        carMic?.stop()
         recognizer?.stopListening()
+        handler.postDelayed(::stopWaitingForResult, RESULT_GRACE_MS)
+    }
+
+    /**
+     * The recognizer was asked for its result and never answered. Seen with
+     * piped audio; don't leave the driver looking at "listening" forever.
+     */
+    private fun stopWaitingForResult() {
+        recognizer?.cancel()
+        closeCarMic()
+        val partial = lastPartial
+        if (partial != null) {
+            listener?.onResult(listOf(partial))
+        } else {
+            listener?.onError(context.getString(R.string.speech_error_no_match), null)
+        }
+    }
+
+    /** The car mic stopped on its own: dismissed on the car screen, or broke. */
+    private fun onCarMicEnded(feed: CarMicFeed, failed: Boolean) {
+        if (failed) carMicFailed = true
+        if (feed === carMic) finishListening()
+    }
+
+    private fun closeCarMic() {
+        carMic?.close()
+        carMic = null
     }
 
     private fun buildIntent() = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
@@ -108,10 +148,13 @@ class SpeechController(private val context: Context) {
 
         override fun onResults(results: Bundle) {
             handler.removeCallbacksAndMessages(null)
+            closeCarMic()
             val alternatives = results
                 .getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 ?.filter { it.isNotBlank() }
                 ?.takeIf { it.isNotEmpty() }
+                // With piped car-mic audio the final bundle often comes back
+                // empty even though the partials were right.
                 ?: listOfNotNull(lastPartial)
 
             if (BuildConfig.DEBUG) {
@@ -126,7 +169,13 @@ class SpeechController(private val context: Context) {
         }
 
         override fun onError(error: Int) {
+            // Cancel/restart races surface as these and resolve themselves —
+            // and may arrive after the next turn has opened its car mic.
+            if (error == SpeechRecognizer.ERROR_RECOGNIZER_BUSY ||
+                error == SpeechRecognizer.ERROR_CLIENT
+            ) return
             handler.removeCallbacksAndMessages(null)
+            closeCarMic()
             // If we already heard something usable, use it rather than dead-ending.
             val partial = lastPartial
             if (partial != null &&
@@ -145,10 +194,6 @@ class SpeechController(private val context: Context) {
                     context.getString(R.string.speech_error_network)
                 SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ->
                     context.getString(R.string.speech_error_permissions)
-                SpeechRecognizer.ERROR_RECOGNIZER_BUSY,
-                SpeechRecognizer.ERROR_CLIENT ->
-                    // Cancel/restart races surface as these and resolve themselves.
-                    return
                 else -> context.getString(R.string.speech_error_generic, error)
             }
             listener?.onError(message, partial)
@@ -170,5 +215,8 @@ class SpeechController(private val context: Context) {
 
         /** Absolute ceiling on one listening turn. */
         private const val MAX_LISTEN_MS = 12000L
+
+        /** How long to wait for the result after asking for it. */
+        private const val RESULT_GRACE_MS = 3000L
     }
 }

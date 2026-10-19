@@ -102,20 +102,34 @@ Matching happens in memory, not in a SQL `LIKE` query, because the contacts
 provider can't compare Greek speech to Greeklish spellings. Contacts are read
 off the main thread and cached when the screen opens.
 
-### Why `SpeechRecognizer` and not `CarAudioRecord`
+### Which microphone: the car's, through `SpeechRecognizer`
 
 `CarAudioRecord` (car app library, API level 5+) records raw PCM from the car
-microphone — it does **no** speech-to-text. Turning that audio into Greek text
-would require either a cloud STT API (backend, cost, privacy) or a bundled
-on-device model (size, complexity). Android's `SpeechRecognizer` does full
-Greek recognition through the phone's Google recognition service, and the
-proven open-source reference for this approach in real cars is
-[aa-speech-to-text](https://gitlab.com/ron.gr/aa-speech-to-text) (GPL-3.0),
-which this project used as a behavior reference.
+microphone — it does **no** speech-to-text. Android's `SpeechRecognizer` does
+full Greek recognition through the phone's Google recognition service, but on
+its own it listens through the phone's microphone, which may be in a bag.
 
-Note that this means Pesto listens through the **phone's** microphone, not the
-car's. Android Auto's own Assistant uses the car microphone, so it still hears
-you with the phone in a bag; Pesto will not.
+Since Android 13 the two can be joined: `RecognizerIntent.EXTRA_AUDIO_SOURCE`
+takes a pipe of audio for the recognizer to read instead of opening the mic,
+and the format it expects by default (16 kHz mono PCM16) is exactly what
+`CarAudioRecord` produces. `CarMicFeed` pumps the car mic into that pipe.
+
+Whether a recognizer honours the extra is up to the recognizer, and Greek has
+no on-device model, so it had to be Google's online one. That was checked
+before building on it: a throwaway probe had the phone's TTS speak a Greek
+phrase into a file, piped it in while the room stayed silent, and the
+recognizer transcribed it. One quirk showed up: with piped audio the final
+result can come back empty while the partials were right, so the last
+partial is used.
+
+Pesto uses the car mic when it can and quietly falls back to the phone mic
+when it can't — Android below 13, an Android Auto host below API level 5, the
+host refusing, or the feed failing mid-drive. While the car mic is open,
+Android Auto shows its own microphone overlay; dismissing it ends the turn.
+
+The reference for doing Greek recognition in a car at all was
+[aa-speech-to-text](https://gitlab.com/ron.gr/aa-speech-to-text) (GPL-3.0),
+which uses the phone mic.
 
 **Greek needs a data connection.** Google ships no on-device (offline) speech
 model for `el-GR` — the phone's own language-pack list contains no Greek at
